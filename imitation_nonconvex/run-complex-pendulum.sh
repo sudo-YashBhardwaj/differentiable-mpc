@@ -1,5 +1,8 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../setup.sh"
+
 args_all_modes() {
     echo --n_epoch 250 --mode sysid --no-cuda $*
     echo --n_epoch 250 --mode empc --no-cuda --learn_dx $*

@@ -26,7 +26,15 @@ please consider citing our paper.
 ## Setup and Dependencies
 
 + Python/numpy/[PyTorch](https://pytorch.org)
-+ [locuslab/mpc.pytorch](https://github.com/locuslab/mpc.pytorch)
++ [locuslab/mpc.pytorch](https://github.com/locuslab/mpc.pytorch) (bundled in `mpc_pytorch_lib/`)
++ `setproctitle`, `matplotlib`, `pandas`, `seaborn`
+
+```bash
+source setup.sh
+```
+
+This creates a virtual environment in `.venv/`, installs all dependencies, and
+configures `PYTHONPATH` for the bundled `mpc.pytorch` library.
 
 # LQR Imitation Learning Experiments
 

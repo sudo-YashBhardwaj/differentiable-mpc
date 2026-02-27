@@ -1,5 +1,8 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../setup.sh"
+
 export OMP_NUM_THREADS=1
 
 for SEED in {0..7}; do

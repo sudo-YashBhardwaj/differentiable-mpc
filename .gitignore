@@ -6,3 +6,5 @@ work*
 
 *.pdf
 *.png
+
+.venv/
