@@ -32,7 +32,7 @@ from setproctitle import setproctitle
 
 from IPython.core import ultratb
 sys.excepthook = ultratb.FormattedTB(mode='Verbose',
-     color_scheme='Linux', call_pdb=1)
+     color_scheme='Linux', call_pdb=0)
 
 
 def main():
@@ -129,8 +129,8 @@ class IL_Exp:
             # self.learn_q = (self.true_q/(1-self.true_q+1e-8)).log().clone().requires_grad_()
             # self.learn_p = self.true_p.clone().requires_grad_()
 
-            self.learn_q_logit = self.learn_q_logit.to(self.device)
-            self.learn_p = self.learn_p.to(self.device)
+            self.learn_q_logit = self.learn_q_logit.to(self.device).detach().requires_grad_(True)
+            self.learn_p = self.learn_p.to(self.device).detach().requires_grad_(True)
 
             if self.learn_dx:
                 if self.env_name == 'pendulum':
@@ -154,13 +154,17 @@ class IL_Exp:
                     assert False
             else:
                 self.env_params = self.env.true_dx.params
-            self.env_params = self.env_params.to(self.device)
+            self.env_params = self.env_params.to(self.device).detach().requires_grad_(True)
         else:
             assert False
 
         if os.path.exists(self.save):
-            shutil.rmtree(self.save)
-        os.makedirs(self.save)
+            try:
+                shutil.rmtree(self.save)
+            except OSError:
+                # NFS can leave .nfs* files that are "device busy"; avoid failing the run
+                shutil.rmtree(self.save, ignore_errors=True)
+        os.makedirs(self.save, exist_ok=True)
 
 
     def lstm_forward(self, xinits):
@@ -180,6 +184,9 @@ class IL_Exp:
 
     def run(self):
         torch.manual_seed(self.seed)
+
+        with open(os.path.join(self.save, 'start_time.txt'), 'w') as f:
+            f.write('{}\n'.format(time.time()))
 
         loss_names = ['epoch']
         loss_names.append('im_loss')
@@ -423,9 +430,16 @@ class IL_Exp:
                 best_val_loss = val_loss
                 fname = os.path.join(self.save, 'best.pkl')
                 print('Saving best model to {}'.format(fname))
-                with open(fname, 'wb') as f:
-                    pkl.dump(self, f)
+                try:
+                    with open(fname, 'wb') as f:
+                        pkl.dump(self, f)
+                except OSError as e:
+                    # Do not crash long sweeps if checkpoint writes fail
+                    # (e.g., disk quota exceeded). Metrics are still persisted.
+                    print('Warning: failed to save best checkpoint: {}'.format(e))
 
+        with open(os.path.join(self.save, 'end_time.txt'), 'w') as f:
+            f.write('{}\n'.format(time.time()))
 
     def make_data(self, data, warmstart=None, shuffle=False):
         data = data.to(self.device)
