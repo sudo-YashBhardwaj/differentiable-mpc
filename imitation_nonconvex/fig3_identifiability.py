@@ -61,10 +61,10 @@ TRUE_G, TRUE_M, TRUE_L = 10.0, 1.0, 1.0
 TRUE_G_OVER_L   = TRUE_G / TRUE_L          # 10.0
 TRUE_INV_ML2    = 1.0 / (TRUE_M * TRUE_L**2)  # 1.0
 
-# Random init ranges — centred away from truth so gradients must travel
+# Default random init ranges — overridable via --g_range / --m_range / --l_range
 G_RANGE = (5.0,  20.0)
 M_RANGE = (0.3,   4.0)
-L_RANGE = (0.3,   1.5)
+L_RANGE = (0.3,   1.5)   # conservative: iLQR can diverge for l > ~2.0
 
 
 # ── Expert data ───────────────────────────────────────────────────────────────
@@ -143,9 +143,13 @@ def train_one_seed(seed, xinit, u_expert, true_dx, cfg):
     """
     torch.manual_seed(seed)
 
-    g_init = float(torch.FloatTensor(1).uniform_(*G_RANGE))
-    m_init = float(torch.FloatTensor(1).uniform_(*M_RANGE))
-    l_init = float(torch.FloatTensor(1).uniform_(*L_RANGE))
+    g_range = getattr(cfg, 'g_range', G_RANGE)
+    m_range = getattr(cfg, 'm_range', M_RANGE)
+    l_range = getattr(cfg, 'l_range', L_RANGE)
+
+    g_init = float(torch.FloatTensor(1).uniform_(*g_range))
+    m_init = float(torch.FloatTensor(1).uniform_(*m_range))
+    l_init = float(torch.FloatTensor(1).uniform_(*l_range))
 
     env_params = torch.tensor([g_init, m_init, l_init], dtype=torch.float32,
                                requires_grad=True)
@@ -369,6 +373,12 @@ def parse_args():
     p.add_argument('--warmstart_reset',  type=int,   default=DEFAULTS['warmstart_reset'])
     p.add_argument('--data_seed',        type=int,   default=DEFAULTS['data_seed'])
     p.add_argument('--out_dir',          type=str,   default=DEFAULTS['out_dir'])
+    p.add_argument('--g_range',          type=float, nargs=2, default=list(G_RANGE),
+                   metavar=('G_MIN', 'G_MAX'))
+    p.add_argument('--m_range',          type=float, nargs=2, default=list(M_RANGE),
+                   metavar=('M_MIN', 'M_MAX'))
+    p.add_argument('--l_range',          type=float, nargs=2, default=list(L_RANGE),
+                   metavar=('L_MIN', 'L_MAX'))
     # Single-seed mode: run exactly this seed and save seed_N.pt, then exit.
     # Used for parallel launches (one process per seed).
     p.add_argument('--single_seed',      type=int,   default=None,
