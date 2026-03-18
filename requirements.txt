@@ -4,4 +4,5 @@ matplotlib
 pandas
 seaborn
 setproctitle
-ipython
+jupyter
+ipykernel
